@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">simplecamera4</string>
+    <string name="permission_required">必要な権限が付与されていません。</string>
+    <string name="capture_button">撮影</string>
+    <string name="photo_capture_failed">写真撮影に失敗しました: %1$s</string>
+    <string name="photo_capture_succeeded">写真撮影に成功しました: %1$s</string>
+</resources>
