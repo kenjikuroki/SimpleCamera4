@@ -50,6 +50,22 @@
        app:layout_constraintEnd_toEndOf="parent"
        app:layout_constraintStart_toStartOf="parent" />
 
-    
+    <!-- フォルダを開くボタン -->
+    <!-- データベースの構成を考えていないためボタンだけ作成 -->
+    <Button
+        android:id="@+id/open_folder_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="フォルダを開く"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginBottom="16dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"/>
+
+
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
