@@ -54,7 +54,7 @@ class MainActivity : ComponentActivity() {
             replaceFilm()
         }
 
-        filmChangeButton.isEnabled = true // フィルム交換ボタンは常に有効
+        filmChangeButton.isEnabled = false // 初期状態ではフィルム交換ボタンを無効化
     }
 
     private fun replaceFilm() {
@@ -62,10 +62,18 @@ class MainActivity : ComponentActivity() {
         updateFilmCounter()
         Toast.makeText(this, "フィルムが交換されました", Toast.LENGTH_SHORT).show()
         takePhotoButton.isEnabled = true // フィルム交換後は撮影可能にする
+        filmChangeButton.isEnabled = false // 交換後はフィルム交換ボタンを無効化
     }
 
     private fun updateFilmCounter() {
         filmCounterTextView.text = "残り ${remainingPhotos}枚"
+
+        // 27枚の時はフィルム交換ボタンを無効にする、26枚以下になったら有効化
+        if (remainingPhotos == 27) {
+            filmChangeButton.isEnabled = false
+        } else {
+            filmChangeButton.isEnabled = true
+        }
     }
 
     private fun allPermissionsGranted(): Boolean {
@@ -137,12 +145,12 @@ class MainActivity : ComponentActivity() {
 
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                     if (remainingPhotos > 0) {
-                        remainingPhotos--
+                        remainingPhotos-- // 残り枚数を減らす
                     }
-                    updateFilmCounter()
+                    updateFilmCounter() // フィルムカウンタを更新
 
                     if (remainingPhotos <= 0) {
-                        takePhotoButton.isEnabled = false
+                        takePhotoButton.isEnabled = false // フィルムがなくなったらボタンを無効化
                     }
 
                     Toast.makeText(this@MainActivity, "写真が保存されました: ${photoFile.absolutePath}", Toast.LENGTH_SHORT).show()
