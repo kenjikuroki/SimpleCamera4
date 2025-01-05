@@ -3,6 +3,7 @@ package com.example.simplecamera4
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
@@ -15,30 +16,32 @@ import androidx.core.content.ContextCompat
 import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import android.util.Log
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var cameraExecutor: ExecutorService
     private var imageCapture: ImageCapture? = null
     private lateinit var previewView: PreviewView
-    private var remainingPhotos = 27 // フィルムカウンターの変数
-    private lateinit var filmCounterTextView: TextView // TextViewの変数
+    private var remainingPhotos = 27
+    private lateinit var filmCounterTextView: TextView
+    private lateinit var filmChangeButton: Button
+    private lateinit var takePhotoButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         previewView = findViewById(R.id.viewFinder)
-        val takePhotoButton: Button = findViewById(R.id.take_photo_button)
-        filmCounterTextView = findViewById(R.id.film_counter) // TextViewの初期化
-        updateFilmCounter() // 初期値を表示
+        takePhotoButton = findViewById(R.id.take_photo_button)
+        filmCounterTextView = findViewById(R.id.film_counter)
+        filmChangeButton = findViewById(R.id.film_change_button)
+        updateFilmCounter()
 
         cameraExecutor = Executors.newSingleThreadExecutor()
 
-        // パーミッションが許可されているかを確認
         if (allPermissionsGranted()) {
-            startCamera() // カメラの初期化
+            startCamera(previewView)
+            takePhotoButton.isEnabled = true // パーミッション取得後、撮影ボタンを有効化
         } else {
             ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
         }
@@ -46,43 +49,46 @@ class MainActivity : ComponentActivity() {
         takePhotoButton.setOnClickListener {
             takePhoto()
         }
+
+        filmChangeButton.setOnClickListener {
+            replaceFilm()
+        }
+
+        filmChangeButton.isEnabled = true // フィルム交換ボタンは常に有効
     }
 
-    // フィルムカウンターの更新
+    private fun replaceFilm() {
+        remainingPhotos = 27
+        updateFilmCounter()
+        Toast.makeText(this, "フィルムが交換されました", Toast.LENGTH_SHORT).show()
+        takePhotoButton.isEnabled = true // フィルム交換後は撮影可能にする
+    }
+
     private fun updateFilmCounter() {
         filmCounterTextView.text = "残り ${remainingPhotos}枚"
     }
 
-    // パーミッションが許可されているか確認するメソッド
     private fun allPermissionsGranted(): Boolean {
         return REQUIRED_PERMISSIONS.all {
             ContextCompat.checkSelfPermission(baseContext, it) == PackageManager.PERMISSION_GRANTED
         }
     }
 
-    // カメラを初期化するメソッド
-    private fun startCamera() {
+    private fun startCamera(previewView: PreviewView) {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
         cameraProviderFuture.addListener({
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
 
-            // Previewの設定
             val preview = Preview.Builder().build()
             preview.setSurfaceProvider(previewView.surfaceProvider)
 
-            // ImageCaptureの設定
             imageCapture = ImageCapture.Builder().build()
 
-            // カメラの選択とビルド
             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
             try {
-                // バインドする前に既存のカメラがバインドされていれば解除する
                 cameraProvider.unbindAll()
-
-                // カメラをバインド
                 cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture)
-
             } catch (exc: Exception) {
                 Log.e("CameraApp", "カメラの初期化に失敗しました: ${exc.message}", exc)
             }
@@ -97,16 +103,16 @@ class MainActivity : ComponentActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_CODE_PERMISSIONS) {
             if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-                startCamera() // パーミッションが許可された場合のみカメラを起動
+                startCamera(previewView)
+                takePhotoButton.isEnabled = true // パーミッション取得後、撮影ボタンを有効化
             } else {
                 Toast.makeText(this, "カメラパーミッションが必要です", Toast.LENGTH_SHORT).show()
-                finish() // パーミッションが拒否された場合はアクティビティを終了
+                finish()
             }
         }
     }
 
     private fun takePhoto() {
-        // 残り写真が0枚の場合はシャッターを切れないようにする
         if (remainingPhotos <= 0) {
             Toast.makeText(this, "フィルムがありません", Toast.LENGTH_SHORT).show()
             return
@@ -131,27 +137,18 @@ class MainActivity : ComponentActivity() {
 
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                     if (remainingPhotos > 0) {
-                        remainingPhotos-- // カウンターを減らす（0より大きい場合のみ）
+                        remainingPhotos--
                     }
-                    updateFilmCounter() // 表示を更新
+                    updateFilmCounter()
 
-                    // 残り写真が0になったらボタンを無効化
                     if (remainingPhotos <= 0) {
-                        disableShutterButton() // シャッターボタンを無効化
-                        Toast.makeText(this@MainActivity, "フィルムがありません", Toast.LENGTH_SHORT).show() // フィルムがなくなった通知
+                        takePhotoButton.isEnabled = false
                     }
 
                     Toast.makeText(this@MainActivity, "写真が保存されました: ${photoFile.absolutePath}", Toast.LENGTH_SHORT).show()
                 }
             }
         )
-    }
-
-
-    // シャッターボタンを無効化するメソッド
-    private fun disableShutterButton() {
-        val takePhotoButton: Button = findViewById(R.id.take_photo_button)
-        takePhotoButton.isEnabled = false // ボタンを無効化
     }
 
     override fun onDestroy() {
