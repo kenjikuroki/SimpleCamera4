@@ -1,8 +1,12 @@
 package com.example.simplecamera4
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
+import android.provider.DocumentsContract
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
@@ -16,6 +20,7 @@ import androidx.core.content.ContextCompat
 import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import androidx.core.content.FileProvider
 
 class MainActivity : ComponentActivity() {
 
@@ -26,6 +31,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var filmCounterTextView: TextView
     private lateinit var filmChangeButton: Button
     private lateinit var takePhotoButton: Button
+    private lateinit var openFolderButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,6 +41,7 @@ class MainActivity : ComponentActivity() {
         takePhotoButton = findViewById(R.id.take_photo_button)
         filmCounterTextView = findViewById(R.id.film_counter)
         filmChangeButton = findViewById(R.id.film_change_button)
+        openFolderButton = findViewById(R.id.open_folder_button)
         updateFilmCounter()
 
         cameraExecutor = Executors.newSingleThreadExecutor()
@@ -52,6 +59,10 @@ class MainActivity : ComponentActivity() {
 
         filmChangeButton.setOnClickListener {
             replaceFilm()
+        }
+
+        openFolderButton.setOnClickListener {
+            openPhotoFolder()
         }
 
         filmChangeButton.isEnabled = false // 初期状態ではフィルム交換ボタンを無効化
@@ -157,6 +168,16 @@ class MainActivity : ComponentActivity() {
                 }
             }
         )
+    }
+    private fun openPhotoFolder() {
+        val photoFolder = File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), "SimpleCamera4")
+        if (!photoFolder.exists()) {
+            photoFolder.mkdirs()
+        }
+        val intent = Intent(this, FolderActivity::class.java).apply {
+            putExtra("FOLDER_PATH", photoFolder.absolutePath)
+        }
+        startActivity(intent)
     }
 
     override fun onDestroy() {
