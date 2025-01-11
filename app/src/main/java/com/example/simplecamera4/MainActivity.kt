@@ -2,11 +2,10 @@ package com.example.simplecamera4
 
 import android.Manifest
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
-import android.provider.DocumentsContract
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
@@ -17,10 +16,10 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import androidx.core.content.FileProvider
 
 class MainActivity : ComponentActivity() {
 
@@ -68,12 +67,40 @@ class MainActivity : ComponentActivity() {
         filmChangeButton.isEnabled = false // 初期状態ではフィルム交換ボタンを無効化
     }
 
-    private fun replaceFilm() {
-        remainingPhotos = 27
-        updateFilmCounter()
-        Toast.makeText(this, "フィルムが交換されました", Toast.LENGTH_SHORT).show()
-        takePhotoButton.isEnabled = true // フィルム交換後は撮影可能にする
-        filmChangeButton.isEnabled = false // 交換後はフィルム交換ボタンを無効化
+private fun replaceFilm() {
+    remainingPhotos = 27
+    updateFilmCounter()
+    Toast.makeText(this, "フィルムが交換されました", Toast.LENGTH_SHORT).show()
+    takePhotoButton.isEnabled = true // フィルム交換後は撮影可能にする
+    filmChangeButton.isEnabled = false // 交換後はフィルム交換ボタンを無効化
+
+    val folderName = "PhotoFolder_${System.currentTimeMillis()}"
+    val folderPath = createPhotoFolder(folderName)
+    val creationDate = System.currentTimeMillis()
+    saveFolderInfo(folderName, creationDate)
+}
+
+private fun createPhotoFolder(folderName: String): String {
+    val folder = File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), folderName)
+    if (!folder.exists()) {
+        folder.mkdirs()
+    }
+    return folder.absolutePath
+}
+
+private fun saveFolderInfo(folderName: String, creationDate: Long) {
+    val sharedPreferences: SharedPreferences = getSharedPreferences("AppPrefs", MODE_PRIVATE)
+    val folders = sharedPreferences.getStringSet("Folders", mutableSetOf())?.toMutableSet() ?: mutableSetOf()
+    folders.add("$folderName,$creationDate")
+    sharedPreferences.edit {
+        putStringSet("Folders", folders)
+        apply()
+    }
+}
+
+    private fun openPhotoFolder() {
+        val intent = Intent(this, FolderActivity::class.java)
+        startActivity(intent)
     }
 
     private fun updateFilmCounter() {
@@ -168,16 +195,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         )
-    }
-    private fun openPhotoFolder() {
-        val photoFolder = File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), "SimpleCamera4")
-        if (!photoFolder.exists()) {
-            photoFolder.mkdirs()
-        }
-        val intent = Intent(this, FolderActivity::class.java).apply {
-            putExtra("FOLDER_PATH", photoFolder.absolutePath)
-        }
-        startActivity(intent)
     }
 
     override fun onDestroy() {
