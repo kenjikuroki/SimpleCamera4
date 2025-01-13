@@ -4,6 +4,9 @@ import android.Manifest
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
@@ -11,15 +14,23 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.camera.core.*
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import android.graphics.BitmapFactory;
+import java.io.FileOutputStream
+
 
 class MainActivity : ComponentActivity() {
 
@@ -191,10 +202,114 @@ private fun saveFolderInfo(folderName: String, creationDate: Long) {
                         takePhotoButton.isEnabled = false // フィルムがなくなったらボタンを無効化
                     }
 
-                    Toast.makeText(this@MainActivity, "写真が保存されました: ${photoFile.absolutePath}", Toast.LENGTH_SHORT).show()
+                    // 保存された画像にエモいエフェクトを適用
+                    val originalBitmap = BitmapFactory.decodeFile(photoFile.absolutePath)
+                    val retroBitmap = CameraUtil.addRetroEffect(originalBitmap)
+
+                    // エモい画質を保存
+                    val retroFile = File(externalMediaDirs.firstOrNull(), "retro_${System.currentTimeMillis()}.jpg")
+                    FileOutputStream(retroFile).use { fos ->
+                        retroBitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos)
+                    }
+
+                    Toast.makeText(this@MainActivity, "エモい写真が保存されました: ${retroFile.absolutePath}", Toast.LENGTH_SHORT).show()
                 }
             }
         )
+    }
+
+
+
+
+    object CameraUtil {
+
+        // 写真にエモい画質を追加するメソッド
+        fun addRetroEffect(originalImage: Bitmap): Bitmap {
+            // コントラスト調整
+            var image = adjustContrast(originalImage)
+
+            // フィルムノイズを追加
+            image = addFilmNoise(image)
+
+            // 色温度調整
+            image = adjustColorTemperature(image)
+
+            // 日付追加（右下に表示）
+            image = addDateToImage(image)
+
+            return image
+        }
+
+        // コントラストを強調
+        private fun adjustContrast(image: Bitmap): Bitmap {
+            val mutableImage = image.copy(Bitmap.Config.ARGB_8888, true)
+            val canvas = Canvas(mutableImage)
+            val paint = Paint()
+
+            // コントラストを強調するためにカラーを調整
+            val contrastMatrix = android.graphics.ColorMatrix()
+            contrastMatrix.setSaturation(1.2f) // 色の強さを強調
+            paint.colorFilter = android.graphics.ColorMatrixColorFilter(contrastMatrix)
+
+            canvas.drawBitmap(image, 0f, 0f, paint)
+            return mutableImage
+        }
+
+        // フィルムノイズを加える
+        private fun addFilmNoise(image: Bitmap): Bitmap {
+            val mutableImage = image.copy(Bitmap.Config.ARGB_8888, true)
+            val canvas = Canvas(mutableImage)
+            val paint = Paint()
+
+            // ノイズを追加
+            for (x in 0 until image.width) {
+                for (y in 0 until image.height) {
+                    val randomNoise = (Math.random() * 40).toInt() // ノイズ強度
+                    val pixelColor = image.getPixel(x, y)
+                    val red = Math.min(255, android.graphics.Color.red(pixelColor) + randomNoise)
+                    val green = Math.min(255, android.graphics.Color.green(pixelColor) + randomNoise)
+                    val blue = Math.min(255, android.graphics.Color.blue(pixelColor) + randomNoise)
+                    mutableImage.setPixel(x, y, android.graphics.Color.rgb(red, green, blue))
+                }
+            }
+
+            return mutableImage
+        }
+
+        // 色温度を調整
+        private fun adjustColorTemperature(image: Bitmap): Bitmap {
+            val mutableImage = image.copy(Bitmap.Config.ARGB_8888, true)
+            val canvas = Canvas(mutableImage)
+            val paint = Paint()
+
+            // 色温度調整（黄色みを加える）
+            val colorMatrix = android.graphics.ColorMatrix()
+            colorMatrix.setScale(1f, 1f, 0.9f, 1f) // 青色成分を少し減らす
+            paint.colorFilter = android.graphics.ColorMatrixColorFilter(colorMatrix)
+
+            canvas.drawBitmap(image, 0f, 0f, paint)
+            return mutableImage
+        }
+
+        // 右下に日付を追加
+        private fun addDateToImage(originalImage: Bitmap): Bitmap {
+            val dateFormat = SimpleDateFormat("yyyy.MM.dd")
+            val currentDate = dateFormat.format(Date())
+
+            val mutableImage = originalImage.copy(Bitmap.Config.ARGB_8888, true)
+            val canvas = Canvas(mutableImage)
+            val paint = Paint()
+            paint.color = android.graphics.Color.WHITE
+            paint.textSize = 40f
+            paint.textAlign = Paint.Align.RIGHT
+            paint.isAntiAlias = true
+
+            val x = mutableImage.width - 20
+            val y = mutableImage.height - 20
+            canvas.drawText(currentDate, x.toFloat(), y.toFloat(), paint)
+
+            return mutableImage
+        }
     }
 
     override fun onDestroy() {
