@@ -1,10 +1,12 @@
 package com.example.simplecamera4
 
+import android.content.DialogInterface
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import java.text.SimpleDateFormat
@@ -35,26 +37,40 @@ class FolderActivity : AppCompatActivity() {
                 text = "$folderName\nフィルム交換日: $dateText"
                 textSize = 18f
                 setPadding(16, 16, 16, 16)
-                setBackgroundResource(android.R.drawable.dialog_holo_light_frame) // 背景を設定
+                setBackgroundResource(android.R.drawable.dialog_holo_light_frame)
                 isClickable = true
                 isFocusable = true
 
-                // クリックイベントを設定
                 setOnClickListener {
-                    // クリックしたフォルダの名前を取得
-                    val folderName = folderName
-
-                    // フォルダに対応する写真リストのアクティビティに遷移
                     val intent = Intent(this@FolderActivity, PhotoListActivity::class.java).apply {
-                        putExtra("folderName", folderName)  // フォルダ名をIntentに渡す
+                        putExtra("folderName", folderName)
                     }
-                    startActivity(intent)  // 写真リストアクティビティを開始
+                    startActivity(intent)
                     Toast.makeText(this@FolderActivity, "$folderName をクリックしました", Toast.LENGTH_SHORT).show()
                 }
 
+                setOnLongClickListener {
+                    AlertDialog.Builder(this@FolderActivity)
+                        .setTitle("フォルダ削除")
+                        .setMessage("フォルダ $folderName を削除しますか？")
+                        .setPositiveButton("削除") { dialog, which ->
+                            removeFolder(folderName, sharedPreferences)
+                            folderLayout.removeView(this)
+                            Toast.makeText(this@FolderActivity, "$folderName を削除しました", Toast.LENGTH_SHORT).show()
+                        }
+                        .setNegativeButton("キャンセル", null)
+                        .show()
+                    true
+                }
             }
             folderLayout.addView(folderView)
         }
+    }
+
+    private fun removeFolder(folderName: String, sharedPreferences: SharedPreferences) {
+        val folders = sharedPreferences.getStringSet("Folders", mutableSetOf())?.toMutableSet()
+        folders?.removeIf { it.startsWith(folderName) }
+        sharedPreferences.edit().putStringSet("Folders", folders).apply()
     }
 
     override fun onSupportNavigateUp(): Boolean {
