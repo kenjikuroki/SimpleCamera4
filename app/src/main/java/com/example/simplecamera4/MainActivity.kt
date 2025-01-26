@@ -83,18 +83,19 @@ class MainActivity : ComponentActivity() {
         filmChangeButton.isEnabled = false
 
         val folderName = "PhotoFolder_${System.currentTimeMillis()}"
-        val folderPath = createPhotoFolder(folderName)
+        val folderPath: File = createPhotoFolder(folderName)
         val creationDate = System.currentTimeMillis()
         saveFolderInfo(folderName, creationDate)
     }
 
-    private fun createPhotoFolder(folderName: String): String {
+    private fun createPhotoFolder(folderName: String): File {
         val folder = File(filesDir, "data/$folderName") // "com/example/simplecamera4" は不要
         if (!folder.exists()) {
             folder.mkdirs()
         }
-        return folder.absolutePath
+        return folder
     }
+
 
     private fun saveFolderInfo(folderName: String, creationDate: Long) {
         val sharedPreferences: SharedPreferences = getSharedPreferences("AppPrefs", MODE_PRIVATE)
@@ -168,10 +169,21 @@ class MainActivity : ComponentActivity() {
             return
         }
 
-        val folderPath = File(filesDir, "data")
-        if (!folderPath.exists()) folderPath.mkdirs()
+        // 写真撮影後のフォルダ作成
+        val folderPath: File
+        if (remainingPhotos == 27) {
+            // フィルム交換後、新しいフォルダを作成
+            val folderName = "PhotoFolder_${System.currentTimeMillis()}"
+            folderPath = createPhotoFolder(folderName)
+            saveFolderInfo(folderName, System.currentTimeMillis())
+        } else {
+            // それ以外の時には直近のフォルダに保存
+            folderPath = File(filesDir, "data") // 直近のフォルダ
+        }
 
-        val photoFile = File(folderPath, "${System.currentTimeMillis()}.jpg")
+        // 写真ファイルの保存先を指定
+        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault()).format(Date())
+        val photoFile = File(folderPath, "$timestamp.jpg")
         val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
 
         imageCapture.takePicture(
@@ -199,6 +211,7 @@ class MainActivity : ComponentActivity() {
             }
         )
     }
+
 
     override fun onDestroy() {
         super.onDestroy()
