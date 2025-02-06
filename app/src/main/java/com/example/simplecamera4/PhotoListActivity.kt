@@ -1,5 +1,4 @@
-package com.example.simplecamera4
-
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.widget.ImageView
@@ -9,6 +8,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import android.util.Log
 import java.io.File
+import com.example.simplecamera4.R
+
 
 class PhotoListActivity : AppCompatActivity() {
 
@@ -40,8 +41,9 @@ class PhotoListActivity : AppCompatActivity() {
             val photos = appDataDir.listFiles { file -> file.isFile && file.extension.equals("jpg", true) }
             if (photos != null && photos.isNotEmpty()) {
                 photos.forEach { photo ->
+                    val bitmap = BitmapFactory.decodeFile(photo.absolutePath)
                     val imageView = ImageView(this).apply {
-                        setImageURI(Uri.fromFile(photo))
+                        setImageBitmap(bitmap)
                         layoutParams = LinearLayout.LayoutParams(
                             LinearLayout.LayoutParams.MATCH_PARENT,
                             LinearLayout.LayoutParams.WRAP_CONTENT
@@ -62,7 +64,6 @@ class PhotoListActivity : AppCompatActivity() {
             Toast.makeText(this, "フォルダが見つかりませんでした", Toast.LENGTH_SHORT).show()
         }
     }
-
 
     override fun onSupportNavigateUp(): Boolean {
         onBackPressed()

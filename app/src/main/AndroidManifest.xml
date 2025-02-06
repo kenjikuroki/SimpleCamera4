@@ -46,7 +46,7 @@
 
         <!-- PhotoListActivity にテーマを追加 -->
         <activity
-            android:name=".PhotoListActivity"
+            android:name="PhotoListActivityy"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
     </application>
